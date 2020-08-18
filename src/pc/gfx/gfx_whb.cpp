@@ -132,33 +132,8 @@ static void gfx_whb_load_shader(struct ShaderProgram *new_prg) {
 }
 
 static struct ShaderProgram *gfx_whb_create_and_load_new_shader(uint32_t shader_id) {
-    uint8_t c[2][4];
-    for (int i = 0; i < 4; i++) {
-        c[0][i] = (shader_id >> (i * 3)) & 7;
-        c[1][i] = (shader_id >> (12 + i * 3)) & 7;
-    }
-    bool opt_alpha = (shader_id & SHADER_OPT_ALPHA) != 0;
-    bool opt_fog = (shader_id & SHADER_OPT_FOG) != 0;
-    bool opt_texture_edge = (shader_id & SHADER_OPT_TEXTURE_EDGE) != 0;
-    bool opt_noise = (shader_id & SHADER_OPT_NOISE) != 0;
-
-    bool used_textures[2] = { 0, 0 };
-    int num_inputs = 0;
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 4; j++) {
-            if (c[i][j] >= SHADER_INPUT_1 && c[i][j] <= SHADER_INPUT_4) {
-                if (c[i][j] > num_inputs) {
-                    num_inputs = c[i][j];
-                }
-            }
-            if (c[i][j] == SHADER_TEXEL0 || c[i][j] == SHADER_TEXEL0A) {
-                used_textures[0] = true;
-            }
-            if (c[i][j] == SHADER_TEXEL1) {
-                used_textures[1] = true;
-            }
-        }
-    }
+    struct CCFeatures cc_features;
+    gfx_cc_get_features(shader_id, &cc_features);
 
     struct ShaderProgram *prg = &shader_program_pool[shader_program_pool_size++];
 
@@ -270,7 +245,7 @@ error:
     pos += 4 * sizeof(float);
     prg->num_floats += 4;
 
-    if (used_textures[0] || used_textures[1]) {
+    if (cc_features.used_textures[0] || cc_features.used_textures[1]) {
         if (!WHBGfxInitShaderAttribute(&prg->group, "aTexCoord", 0, pos, GX2_ATTRIB_FORMAT_FLOAT_32_32)) {
             goto error;
         }
@@ -279,7 +254,7 @@ error:
         prg->num_floats += 2;
     }
 
-    if (opt_fog) {
+    if (cc_features.opt_fog) {
         if (!WHBGfxInitShaderAttribute(&prg->group, "aFog", 0, pos, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32)) {
             goto error;
         }
@@ -288,7 +263,7 @@ error:
         prg->num_floats += 4;
     }
 
-    for (int i = 0; i < num_inputs; i++) {
+    for (int i = 0; i < cc_features.num_inputs; i++) {
         char name[16];
         sprintf(name, "aInput%d", i + 1);
         if (!WHBGfxInitShaderAttribute(&prg->group, name, 0, pos, GX2_ATTRIB_FORMAT_FLOAT_32_32_32_32)) {
@@ -306,9 +281,9 @@ error:
     WHBLogPrint("Initiated Fetch Shader.");
 
     prg->shader_id = shader_id;
-    prg->num_inputs = num_inputs;
-    prg->used_textures[0] = used_textures[0];
-    prg->used_textures[1] = used_textures[1];
+    prg->num_inputs = cc_features.num_inputs;
+    prg->used_textures[0] = cc_features.used_textures[0];
+    prg->used_textures[1] = cc_features.used_textures[1];
 
     gfx_whb_load_shader(prg);
 
@@ -322,7 +297,7 @@ error:
     prg->window_height_offset = GX2GetPixelUniformVarOffset(prg->group.pixelShader, "window_height");
     */
 
-    if (opt_alpha && opt_noise) {
+    if (cc_features.opt_alpha && cc_features.opt_noise) {
         prg->used_noise = true;
     } else {
         prg->used_noise = false;
@@ -530,11 +505,24 @@ static void gfx_whb_draw_triangles(float buf_vbo[], size_t buf_vbo_len, size_t b
 static void gfx_whb_init(void) {
 }
 
+static void gfx_whb_on_resize(void) {
+}
+
 static void gfx_whb_start_frame(void) {
     frame_count++;
 
     WHBGfxBeginRenderTV();
     WHBGfxClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+static void gfx_whb_end_frame(void) {
+    GX2Flush();
+    GX2DrawDone();
+    WHBGfxFinishRenderTV();
+    GX2CopyColorBufferToScanBuffer(WHBGfxGetTVColourBuffer(), GX2_SCAN_TARGET_DRC);
+}
+
+static void gfx_whb_finish_render(void) {
 }
 
 static void gfx_whb_shutdown(void) {
@@ -584,7 +572,10 @@ struct GfxRenderingAPI gfx_whb_api = {
     gfx_whb_set_use_alpha,
     gfx_whb_draw_triangles,
     gfx_whb_init,
+    gfx_whb_on_resize,
     gfx_whb_start_frame,
+    gfx_whb_end_frame,
+    gfx_whb_finish_render,
     gfx_whb_shutdown
 };
 

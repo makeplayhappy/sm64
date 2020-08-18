@@ -5,7 +5,6 @@
 #include <coreinit/foreground.h>
 #include <gx2/display.h>
 #include <gx2/event.h>
-#include <gx2/state.h>
 #include <gx2/swap.h>
 #include <proc_ui/procui.h>
 #include <sndcore2/core.h>
@@ -101,11 +100,6 @@ static bool gfx_whb_window_start_frame(void) {
 }
 
 static void gfx_whb_window_swap_buffers_begin(void) {
-    GX2Flush();
-    GX2DrawDone();
-    WHBGfxFinishRenderTV();
-    GX2CopyColorBufferToScanBuffer(WHBGfxGetTVColourBuffer(), GX2_SCAN_TARGET_DRC);
-
     WHBGfxFinishRender();
     whb_free_vbo();
 }
