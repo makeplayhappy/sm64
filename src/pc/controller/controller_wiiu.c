@@ -197,9 +197,6 @@ static u32 controller_wiiu_rawkey(void) {
     return VK_INVALID;
 }
 
-static void controller_wiiu_shutdown(void) {
-}
-
 struct ControllerAPI controller_wiiu = {
     VK_INVALID,
     controller_wiiu_init,
@@ -208,7 +205,7 @@ struct ControllerAPI controller_wiiu = {
     NULL, // no rumble_play
     NULL, // no rumble_stop
     NULL, // no rebinding
-    controller_wiiu_shutdown
+    NULL  // shutdown is done independently
 };
 
 #endif
