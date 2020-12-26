@@ -65,7 +65,7 @@ RENDER_API ?= GL
 WINDOW_API ?= SDL2
 # Audio backends: SDL1, SDL2 (forced if the target is Wii U)
 AUDIO_API ?= SDL2
-# Controller backends (can have multiple, space separated): SDL2, WII_U (forced if the target is Wii U)
+# Controller backends (can have multiple, space separated): SDL2, SDL1, WII_U (forced if the target is Wii U)
 CONTROLLER_API ?= SDL2
 
 ifeq ($(TARGET_WII_U),1)
@@ -694,7 +694,7 @@ endif
 ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
 
 ifeq ($(TARGET_WEB),1)
-LDFLAGS := -lm -lGL -lSDL2 -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+  LDFLAGS := -lm -lGL -lSDL2 -no-pie -s TOTAL_MEMORY=64MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
 
 else ifeq ($(TARGET_WII_U),1)
 LDFLAGS := -lm -no-pie $(BACKEND_LDFLAGS) $(MACHDEP) $(RPXSPECS) $(LIBPATHS)
